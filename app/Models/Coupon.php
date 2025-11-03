@@ -5,6 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * @property int $id
+ * @property string $code
+ * @property string $type
+ * @property int $value
+ * @property \Illuminate\Support\Carbon|null $starts_at
+ * @property \Illuminate\Support\Carbon|null $ends_at
+ * @property int|null $max_uses
+ * @property int|null $uses
+ */
 class Coupon extends Model
 {
     use HasFactory;

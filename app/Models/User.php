@@ -7,6 +7,17 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property bool $is_active
+ * @property \Illuminate\Support\Carbon|null $email_verified_at
+ *
+ * @property-read \Illuminate\Database\Eloquent\Collection|\Spatie\Permission\Models\Role[] $roles
+ * @property-read \Illuminate\Database\Eloquent\Collection|\Spatie\Permission\Models\Permission[] $permissions
+ */
 class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasRoles;
@@ -17,7 +28,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'is_active', 
+        'is_active',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -31,6 +42,8 @@ class User extends Authenticatable
         ];
     }
 
-    public function scopeActive($q) { return $q->where('is_active', true); }
+    public function scopeActive($q)
+    {
+        return $q->where('is_active', true);
+    }
 }
-

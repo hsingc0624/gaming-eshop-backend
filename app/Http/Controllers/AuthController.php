@@ -10,11 +10,15 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+    /**
+     * @param  \Illuminate\Http\Request  $r
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function register(Request $r)
     {
         $data = $r->validate([
-            'name'     => ['required','string','max:100'],
-            'email'    => ['required','email','max:255','unique:users'],
+            'name'     => ['required', 'string', 'max:100'],
+            'email'    => ['required', 'email', 'max:255', 'unique:users'],
             'password' => ['required', Password::min(6)],
         ]);
 
@@ -34,6 +38,10 @@ class AuthController extends Controller
         return response()->json(['user' => $user], 201);
     }
 
+    /**
+     * @param  \Illuminate\Http\Request  $r
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function login(Request $r)
     {
         $credentials = $r->validate([
@@ -49,6 +57,10 @@ class AuthController extends Controller
         return response()->json(['user' => Auth::user()]);
     }
 
+    /**
+     * @param  \Illuminate\Http\Request  $r
+     * @return \Illuminate\Http\Response
+     */
     public function logout(Request $r)
     {
         Auth::guard('web')->logout();

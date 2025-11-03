@@ -7,19 +7,24 @@ use App\Models\Cart;
 use App\Models\Coupon;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CheckoutController extends Controller
 {
+    /**
+     * @param  Request  $r
+     * @return JsonResponse
+     */
     public function checkout(Request $r)
     {
         $data = $r->validate([
-            'cart_token'    => ['required','uuid'],
-            'shipping'      => ['required','array'],
-            'billing'       => ['required','array'],
-            'payment_method'=> ['required','string'],
-            'coupon'        => ['nullable','string'],
+            'cart_token'     => ['required','uuid'],
+            'shipping'       => ['required','array'],
+            'billing'        => ['required','array'],
+            'payment_method' => ['required','string'],
+            'coupon'         => ['nullable','string'],
         ]);
 
         $cart = Cart::where('cart_token', $data['cart_token'])
@@ -51,7 +56,7 @@ class CheckoutController extends Controller
             $order = Order::create([
                 'number'          => Str::upper(Str::random(10)),
                 'user_id'         => auth()->id(),
-                'status'          => 'pending', 
+                'status'          => 'pending',
                 'subtotal_cents'  => $subtotal,
                 'discount_cents'  => $discount,
                 'shipping_cents'  => $shipping,

@@ -5,9 +5,15 @@ namespace App\Http\Controllers;
 use App\Jobs\SendCampaign;
 use App\Models\Campaign;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 class CampaignController extends Controller
 {
+    /**
+     * @param  Request  $r
+     * @return JsonResponse
+     */
     public function index(Request $r)
     {
         return response()->json(
@@ -15,6 +21,10 @@ class CampaignController extends Controller
         );
     }
 
+    /**
+     * @param  Request  $r
+     * @return JsonResponse
+     */
     public function store(Request $r)
     {
         $data = $r->validate([
@@ -28,6 +38,11 @@ class CampaignController extends Controller
         return response()->json($c, 201);
     }
 
+    /**
+     * @param  int      $id
+     * @param  Request  $r
+     * @return JsonResponse
+     */
     public function schedule(int $id, Request $r)
     {
         $data = $r->validate([
@@ -42,6 +57,11 @@ class CampaignController extends Controller
         return response()->json($c->fresh());
     }
 
+    /**
+     * @param  int      $id
+     * @param  Request  $r
+     * @return Response
+     */
     public function sendTest(int $id, Request $r)
     {
         $data = $r->validate(['email' => ['required','email']]);
@@ -53,5 +73,33 @@ class CampaignController extends Controller
         });
 
         return response()->noContent();
+    }
+
+    /**
+     * @param  Request  $r
+     * @return JsonResponse
+     */
+    public function metrics(Request $r)
+    {
+        $days = (int)($r->integer('days') ?: 30);
+
+        $rows = \DB::table('campaigns')
+            ->selectRaw('DATE(created_at) as d, COALESCE(SUM(sent_count),0) as s')
+            ->where('created_at', '>=', now()->subDays($days))
+            ->groupBy('d')
+            ->orderBy('d')
+            ->get();
+
+        $byDate = $rows->keyBy('d');
+        $out = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $day = now()->subDays($i)->toDateString();
+            $out[] = [
+                'date' => $day,
+                'sent' => (int)($byDate[$day]->s ?? 0),
+            ];
+        }
+
+        return response()->json($out);
     }
 }

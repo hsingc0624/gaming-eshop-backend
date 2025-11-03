@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
 {
+    /**
+     * @param  Request  $r
+     * @return JsonResponse
+     */
     public function index(Request $r)
     {
         $orders = Order::query()
@@ -19,6 +24,10 @@ class OrderController extends Controller
         return response()->json($orders);
     }
 
+    /**
+     * @param  string  $number
+     * @return JsonResponse
+     */
     public function show(string $number)
     {
         $order = Order::with(['items.product','addresses'])
@@ -32,6 +41,11 @@ class OrderController extends Controller
         return response()->json($order);
     }
 
+    /**
+     * @param  Request  $r
+     * @param  string   $number
+     * @return JsonResponse
+     */
     public function update(Request $r, string $number)
     {
         $order = Order::where('number', $number)->firstOrFail();
@@ -56,6 +70,11 @@ class OrderController extends Controller
         return response()->json($order);
     }
 
+    /**
+     * @param  Request  $r
+     * @param  string   $number
+     * @return JsonResponse
+     */
     public function refund(Request $r, string $number)
     {
         $order = Order::where('number', $number)->firstOrFail();

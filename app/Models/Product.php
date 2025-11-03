@@ -5,6 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $slug
+ * @property string|null $description
+ * @property int $price_cents
+ * @property int|null $sale_price_cents
+ * @property bool $is_active
+ * @property-read int $display_price_cents
+ *
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ProductImage[] $images
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ProductVariant[] $variants
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Category[] $categories
+ */
 class Product extends Model
 {
     use HasFactory;

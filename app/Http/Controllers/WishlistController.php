@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Wishlist;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class WishlistController extends Controller
 {
+    /**
+     * @return JsonResponse
+     */
     public function index()
     {
         $w = Wishlist::firstOrCreate(['user_id' => auth()->id()]);
@@ -16,6 +19,10 @@ class WishlistController extends Controller
         );
     }
 
+    /**
+     * @param  Product  $product
+     * @return JsonResponse
+     */
     public function toggle(Product $product)
     {
         $w = Wishlist::firstOrCreate(['user_id' => auth()->id()]);

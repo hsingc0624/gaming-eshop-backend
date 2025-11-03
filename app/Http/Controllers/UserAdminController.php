@@ -5,17 +5,26 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserAdminController extends Controller
 {
+    /**
+     * @return \Illuminate\Support\Collection
+     */
     public function roles()
     {
         return Role::orderBy('name')->pluck('name');
     }
 
+    /**
+     * @param  Request  $r
+     * @return LengthAwarePaginator
+     */
     public function index(Request $r)
     {
         $q = User::query()
@@ -32,7 +41,7 @@ class UserAdminController extends Controller
         $users = $q->orderBy('name')->paginate(20);
 
         $users->getCollection()->transform(function ($u) {
-            $u->role = $u->roles->pluck('name')->first(); 
+            $u->role = $u->roles->pluck('name')->first();
             unset($u->roles);
             return $u;
         });
@@ -40,6 +49,11 @@ class UserAdminController extends Controller
         return $users;
     }
 
+    /**
+     * @param  int      $id
+     * @param  Request  $r
+     * @return array
+     */
     public function update($id, Request $r)
     {
         $data = $r->validate([
@@ -55,20 +69,25 @@ class UserAdminController extends Controller
         }
 
         if (!empty($data['role'])) {
-            $user->syncRoles([$data['role']]); 
+            $user->syncRoles([$data['role']]);
         }
 
         $user->load('roles:id,name');
+
         return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
+            'id'        => $user->id,
+            'name'      => $user->name,
+            'email'     => $user->email,
             'is_active' => $user->is_active,
-            'role' => $user->roles->pluck('name')->first(),
+            'role'      => $user->roles->pluck('name')->first(),
         ];
     }
-    
-     public function store(Request $r)
+
+    /**
+     * @param  Request  $r
+     * @return JsonResponse
+     */
+    public function store(Request $r)
     {
         $data = $r->validate([
             'name'      => 'required|string|min:2|max:80',
@@ -79,6 +98,7 @@ class UserAdminController extends Controller
         ]);
 
         $password = $data['password'] ?? Str::password(12);
+
         $user = new User();
         $user->name = $data['name'];
         $user->email = $data['email'];
@@ -89,7 +109,6 @@ class UserAdminController extends Controller
         $user->syncRoles([$data['role']]);
 
         $user->load('roles:id,name');
-
 
         return response()->json([
             'id'        => $user->id,

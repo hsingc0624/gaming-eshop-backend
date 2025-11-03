@@ -7,10 +7,16 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 
 class CartController extends Controller
 {
+    /**
+     * @param  Request  $r
+     * @return JsonResponse
+     */
     public function attach(Request $r)
     {
         $token = $r->input('cart_token') ?: (string) Str::uuid();
@@ -30,6 +36,10 @@ class CartController extends Controller
         ]);
     }
 
+    /**
+     * @param  Request  $r
+     * @return JsonResponse
+     */
     public function add(Request $r)
     {
         $data = $r->validate([
@@ -67,6 +77,11 @@ class CartController extends Controller
         return response()->json($item->fresh()->load(['product','variant']));
     }
 
+    /**
+     * @param  Request  $r
+     * @param  int      $id
+     * @return JsonResponse
+     */
     public function update(Request $r, int $id)
     {
         $data = $r->validate([
@@ -79,6 +94,10 @@ class CartController extends Controller
         return response()->json($item->fresh()->load(['product','variant']));
     }
 
+    /**
+     * @param  int  $id
+     * @return Response
+     */
     public function remove(int $id)
     {
         $item = CartItem::findOrFail($id);
@@ -86,6 +105,10 @@ class CartController extends Controller
         return response()->noContent();
     }
 
+    /**
+     * @param  Request  $r
+     * @return JsonResponse
+     */
     public function show(Request $r)
     {
         $token = $r->query('cart_token');
