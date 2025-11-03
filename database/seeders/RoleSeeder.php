@@ -1,25 +1,31 @@
 <?php
+
 namespace Database\Seeders;
 
+use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use Illuminate\Database\Seeder;
 
+class RoleSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $admin = Role::firstOrCreate(['name' => 'Admin']);
+        $staff = Role::firstOrCreate(['name' => 'Staff']);
+        $viewer = Role::firstOrCreate(['name' => 'Viewer']);
 
-class RoleSeeder extends Seeder {
-public function run(){
-$admin = Role::firstOrCreate(['name'=>'Admin']);
-$staff = Role::firstOrCreate(['name'=>'Staff']);
-$viewer= Role::firstOrCreate(['name'=>'Viewer']);
+        $perms = [
+            'manage products',
+            'manage orders',
+            'manage users',
+            'manage campaigns',
+        ];
 
+        foreach ($perms as $p) {
+            Permission::firstOrCreate(['name' => $p]);
+        }
 
-Permission::firstOrCreate(['name'=>'manage products']);
-Permission::firstOrCreate(['name'=>'manage orders']);
-Permission::firstOrCreate(['name'=>'manage users']);
-Permission::firstOrCreate(['name'=>'manage campaigns']);
-
-
-$admin->givePermissionTo(Permission::all());
-$staff->givePermissionTo(['manage products','manage orders','manage campaigns']);
-}
+        $admin->givePermissionTo(Permission::all());
+        $staff->givePermissionTo(['manage products', 'manage orders', 'manage campaigns']);
+    }
 }

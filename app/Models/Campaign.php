@@ -9,8 +9,9 @@ class Campaign extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name','subject','html','segment','status','scheduled_at'];
-
+    protected $fillable = [
+        'name','subject','html','segment','status','scheduled_at','sent_count'
+    ];
     protected $casts = [
         'scheduled_at' => 'datetime',
     ];
