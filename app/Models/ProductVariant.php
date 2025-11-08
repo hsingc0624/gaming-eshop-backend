@@ -22,8 +22,9 @@ class ProductVariant extends Model
     protected $fillable = ['product_id','sku','options','price_cents','stock'];
 
     protected $casts = [
-        'options' => 'array',
-        'stock'   => 'integer',
+        'options' => 'array', 
+        'price_cents' => 'integer',
+        'stock' => 'integer',
     ];
 
     public function product()

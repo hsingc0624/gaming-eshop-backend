@@ -24,9 +24,7 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+    Route::get('/user', fn (Request $r) => $r->user());
 
     Route::post('/products', [ProductController::class, 'store']);
     Route::delete('/products/{id}', [ProductController::class, 'destroy'])
@@ -36,21 +34,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/{number}', [OrderController::class, 'show']);
     Route::patch('/orders/{number}', [OrderController::class, 'update'])
         ->middleware('permission:manage orders');
-
     Route::post('/orders/{number}/refund', [OrderController::class, 'refund'])
         ->middleware('permission:manage orders');
+    Route::get('/orders/{number}/invoice', [OrderController::class, 'invoice']);
     Route::post('/checkout', [CheckoutController::class, 'checkout']);
 
-    Route::get('/wishlist', [WishlistController::class, 'index']);  
+    Route::get('/wishlist', [WishlistController::class, 'index']);
     Route::post('/wishlist/{product}', [WishlistController::class, 'toggle']);
-});
-
-Route::middleware('throttle:60,1')->group(function () {
-    Route::post('/cart', [CartController::class, 'attach']);
-    Route::post('/cart/items', [CartController::class, 'add']);
-    Route::put('/cart/items/{id}', [CartController::class, 'update']);
-    Route::delete('/cart/items/{id}', [CartController::class, 'remove']);
-    Route::get('/cart', [CartController::class, 'show']);
 });
 
 Route::middleware(['auth:sanctum', 'permission:manage campaigns'])->group(function () {
@@ -72,3 +62,12 @@ Route::post('/contact', [ContactController::class, 'store'])
     ->middleware(['throttle:10,1'])
     ->withoutMiddleware([Stateful::class]);
 
+Route::middleware('throttle:60,1')
+    ->withoutMiddleware([Stateful::class])
+    ->group(function () {
+        Route::post('/cart', [CartController::class, 'attach']);
+        Route::post('/cart/items', [CartController::class, 'add']);
+        Route::put('/cart/items/{id}', [CartController::class, 'update']);
+        Route::delete('/cart/items/{id}', [CartController::class, 'remove']);
+        Route::get('/cart', [CartController::class, 'show']);
+    });

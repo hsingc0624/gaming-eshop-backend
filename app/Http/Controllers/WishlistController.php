@@ -19,7 +19,7 @@ class WishlistController extends Controller
         );
     }
 
-    /**
+    /** 
      * @param  Product  $product
      * @return JsonResponse
      */

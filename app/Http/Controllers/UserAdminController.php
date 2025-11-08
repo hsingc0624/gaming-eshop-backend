@@ -2,120 +2,68 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\User;
-use Illuminate\Http\Request;
+use App\Http\Requests\User\IndexUserRequest;
+use App\Http\Requests\User\StoreUserRequest;
+use App\Http\Requests\User\UpdateUserRequest;
+use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
+use Illuminate\Support\Collection;
 
 class UserAdminController extends Controller
 {
     /**
-     * @return \Illuminate\Support\Collection
+     * @param UserService $service
      */
-    public function roles()
+    public function __construct(
+        private UserService $service
+    ) {}
+
+    /**
+     * @return Collection
+     */
+    public function roles(): Collection
     {
-        return Role::orderBy('name')->pluck('name');
+        return $this->service->roles();
     }
 
     /**
-     * @param  Request  $r
+     * @param IndexUserRequest $r
      * @return LengthAwarePaginator
      */
-    public function index(Request $r)
+    public function index(IndexUserRequest $r): LengthAwarePaginator
     {
-        $q = User::query()
-            ->select('id','name','email','is_active')
-            ->with('roles:id,name');
-
-        if ($role = $r->query('role')) {
-            $q->role($role);
-        }
-        if ($status = $r->query('status')) {
-            $q->where('is_active', $status === 'active');
-        }
-
-        $users = $q->orderBy('name')->paginate(20);
-
-        $users->getCollection()->transform(function ($u) {
-            $u->role = $u->roles->pluck('name')->first();
-            unset($u->roles);
-            return $u;
-        });
-
-        return $users;
+        return $this->service->list(
+            $r->validated() + $r->query()
+        );
     }
 
     /**
-     * @param  int      $id
-     * @param  Request  $r
+     * @param int               $id
+     * @param UpdateUserRequest $r
      * @return array
      */
-    public function update($id, Request $r)
+    public function update(int $id, UpdateUserRequest $r): array
     {
-        $data = $r->validate([
-            'role' => 'sometimes|string|exists:roles,name',
-            'is_active' => 'sometimes|boolean',
-        ]);
-
-        $user = User::findOrFail($id);
-
-        if (array_key_exists('is_active', $data)) {
-            $user->is_active = $data['is_active'];
-            $user->save();
-        }
-
-        if (!empty($data['role'])) {
-            $user->syncRoles([$data['role']]);
-        }
-
-        $user->load('roles:id,name');
-
-        return [
-            'id'        => $user->id,
-            'name'      => $user->name,
-            'email'     => $user->email,
-            'is_active' => $user->is_active,
-            'role'      => $user->roles->pluck('name')->first(),
-        ];
+        return $this->service->update(
+            $id,
+            $r->validated()
+        );
     }
 
     /**
-     * @param  Request  $r
+     * @param StoreUserRequest $r
      * @return JsonResponse
      */
-    public function store(Request $r)
+    public function store(StoreUserRequest $r): JsonResponse
     {
-        $data = $r->validate([
-            'name'      => 'required|string|min:2|max:80',
-            'email'     => 'required|email|unique:users,email',
-            'role'      => 'required|string|exists:roles,name',
-            'is_active' => 'sometimes|boolean',
-            'password'  => 'sometimes|string|min:8',
-        ]);
+        $payload = $this->service->create(
+            $r->validated()
+        );
 
-        $password = $data['password'] ?? Str::password(12);
-
-        $user = new User();
-        $user->name = $data['name'];
-        $user->email = $data['email'];
-        $user->is_active = array_key_exists('is_active', $data) ? (bool)$data['is_active'] : true;
-        $user->password = Hash::make($password);
-        $user->save();
-
-        $user->syncRoles([$data['role']]);
-
-        $user->load('roles:id,name');
-
-        return response()->json([
-            'id'        => $user->id,
-            'name'      => $user->name,
-            'email'     => $user->email,
-            'is_active' => $user->is_active,
-            'role'      => $user->roles->pluck('name')->first(),
-        ], 201);
+        return response()->json(
+            $payload,
+            201
+        );
     }
 }

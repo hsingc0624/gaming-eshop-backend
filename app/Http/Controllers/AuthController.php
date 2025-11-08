@@ -2,70 +2,52 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rules\Password;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Services\AuthService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 class AuthController extends Controller
 {
     /**
-     * @param  \Illuminate\Http\Request  $r
-     * @return \Illuminate\Http\JsonResponse
+     * @param AuthService $service
      */
-    public function register(Request $r)
+    public function __construct(private AuthService $service) {}
+
+    /**
+     * @param RegisterRequest $r
+     * @return JsonResponse
+     */
+    public function register(RegisterRequest $r): JsonResponse
     {
-        $data = $r->validate([
-            'name'     => ['required', 'string', 'max:100'],
-            'email'    => ['required', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', Password::min(6)],
-        ]);
-
-        $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
-
-        if (method_exists($user, 'assignRole')) {
-            $user->assignRole('Customer');
-        }
-
-        Auth::login($user);
-        $r->session()->regenerate();
+        $user = $this->service->register($r->validated());
 
         return response()->json(['user' => $user], 201);
     }
 
     /**
-     * @param  \Illuminate\Http\Request  $r
-     * @return \Illuminate\Http\JsonResponse
+     * @param LoginRequest $r
+     * @return JsonResponse
      */
-    public function login(Request $r)
+    public function login(LoginRequest $r): JsonResponse
     {
-        $credentials = $r->validate([
-            'email'    => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+        $user = $this->service->login($r->validated());
 
-        if (! Auth::attempt($credentials, true)) {
+        if (!$user) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
-        $r->session()->regenerate();
-        return response()->json(['user' => Auth::user()]);
+        return response()->json(['user' => $user]);
     }
 
     /**
-     * @param  \Illuminate\Http\Request  $r
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
-    public function logout(Request $r)
+    public function logout(): Response
     {
-        Auth::guard('web')->logout();
-        $r->session()->invalidate();
-        $r->session()->regenerateToken();
+        $this->service->logout();
+
         return response()->noContent();
     }
 }

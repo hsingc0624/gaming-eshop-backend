@@ -2,104 +2,82 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\SendCampaign;
-use App\Models\Campaign;
-use Illuminate\Http\Request;
+use App\Http\Requests\Campaign\IndexCampaignRequest;
+use App\Http\Requests\Campaign\StoreCampaignRequest;
+use App\Http\Requests\Campaign\ScheduleCampaignRequest;
+use App\Http\Requests\Campaign\SendTestRequest;
+use App\Http\Requests\Campaign\MetricsRequest;
+use App\Services\CampaignService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 
 class CampaignController extends Controller
 {
     /**
-     * @param  Request  $r
+     * @param CampaignService $service
+     */
+    public function __construct(
+        private CampaignService $service
+    ) {}
+
+    /**
+     * @param IndexCampaignRequest $r
      * @return JsonResponse
      */
-    public function index(Request $r)
+    public function index(IndexCampaignRequest $r): JsonResponse
     {
+        $perPage = (int) ($r->integer('per_page') ?: 20);
+
         return response()->json(
-            Campaign::query()->latest()->paginate($r->integer('per_page') ?: 20)
+            $this->service->index($perPage)
         );
     }
 
     /**
-     * @param  Request  $r
+     * @param StoreCampaignRequest $r
      * @return JsonResponse
      */
-    public function store(Request $r)
+    public function store(StoreCampaignRequest $r): JsonResponse
     {
-        $data = $r->validate([
-            'name'    => ['required','string','max:200'],
-            'subject' => ['required','string','max:200'],
-            'html'    => ['required','string'],
-            'segment' => ['nullable','string','max:100'],
-        ]);
+        $c = $this->service->store($r->validated());
 
-        $c = Campaign::create($data);
         return response()->json($c, 201);
     }
 
     /**
-     * @param  int      $id
-     * @param  Request  $r
+     * @param int                    $id
+     * @param ScheduleCampaignRequest $r
      * @return JsonResponse
      */
-    public function schedule(int $id, Request $r)
+    public function schedule(int $id, ScheduleCampaignRequest $r): JsonResponse
     {
-        $data = $r->validate([
-            'scheduled_at' => ['required','date'],
-        ]);
+        $c = $this->service->schedule($id, $r->validated()['scheduled_at']);
 
-        $c = Campaign::findOrFail($id);
-        $c->update(['status' => 'scheduled', 'scheduled_at' => $data['scheduled_at']]);
-
-        SendCampaign::dispatch($c)->delay($c->scheduled_at);
-
-        return response()->json($c->fresh());
+        return response()->json($c);
     }
 
     /**
-     * @param  int      $id
-     * @param  Request  $r
+     * @param int               $id
+     * @param SendTestRequest   $r
      * @return Response
      */
-    public function sendTest(int $id, Request $r)
+    public function sendTest(int $id, SendTestRequest $r): Response
     {
-        $data = $r->validate(['email' => ['required','email']]);
-
-        $c = Campaign::findOrFail($id);
-
-        \Mail::html($c->html, function ($m) use ($data, $c) {
-            $m->to($data['email'])->subject('[Test] '.$c->subject);
-        });
+        $this->service->sendTest($id, $r->validated()['email']);
 
         return response()->noContent();
     }
 
     /**
-     * @param  Request  $r
+     * @param MetricsRequest $r
      * @return JsonResponse
      */
-    public function metrics(Request $r)
+    public function metrics(MetricsRequest $r): JsonResponse
     {
-        $days = (int)($r->integer('days') ?: 30);
+        $days = (int) ($r->integer('days') ?: 30);
 
-        $rows = \DB::table('campaigns')
-            ->selectRaw('DATE(created_at) as d, COALESCE(SUM(sent_count),0) as s')
-            ->where('created_at', '>=', now()->subDays($days))
-            ->groupBy('d')
-            ->orderBy('d')
-            ->get();
-
-        $byDate = $rows->keyBy('d');
-        $out = [];
-        for ($i = $days - 1; $i >= 0; $i--) {
-            $day = now()->subDays($i)->toDateString();
-            $out[] = [
-                'date' => $day,
-                'sent' => (int)($byDate[$day]->s ?? 0),
-            ];
-        }
-
-        return response()->json($out);
+        return response()->json(
+            $this->service->metrics($days)
+        );
     }
 }

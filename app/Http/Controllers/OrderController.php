@@ -2,89 +2,84 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Order;
-use Illuminate\Http\Request;
+use App\Http\Requests\Order\IndexOrderRequest;
+use App\Http\Requests\Order\UpdateOrderRequest;
+use App\Http\Requests\Order\RefundOrderRequest;
+use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\Rule;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
     /**
-     * @param  Request  $r
+     * @param OrderService $service
+     */
+    public function __construct(
+        private OrderService $service
+    ) {}
+
+    /**
+     * @param IndexOrderRequest $r
      * @return JsonResponse
      */
-    public function index(Request $r)
+    public function index(IndexOrderRequest $r): JsonResponse
     {
-        $orders = Order::query()
-            ->where('user_id', auth()->id())
-            ->with(['items.product','addresses'])
-            ->orderByDesc('id')
-            ->paginate($r->integer('per_page') ?: 15);
+        $perPage = (int) ($r->integer('per_page') ?: 15);
+
+        $orders = $this->service->index((int) auth()->id(), $perPage);
 
         return response()->json($orders);
     }
 
     /**
-     * @param  string  $number
+     * @param string $number
      * @return JsonResponse
      */
-    public function show(string $number)
+    public function show(string $number): JsonResponse
     {
-        $order = Order::with(['items.product','addresses'])
-            ->where('number', $number)
-            ->firstOrFail();
-
-        if ($order->user_id !== auth()->id() && !auth()->user()->can('manage orders')) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
+        $order = $this->service->show($number, auth()->user());
 
         return response()->json($order);
     }
 
     /**
-     * @param  Request  $r
-     * @param  string   $number
+     * @param UpdateOrderRequest $r
+     * @param string             $number
      * @return JsonResponse
      */
-    public function update(Request $r, string $number)
+    public function update(UpdateOrderRequest $r, string $number): JsonResponse
     {
-        $order = Order::where('number', $number)->firstOrFail();
+        $order = $this->service->update($number, $r->validated());
 
-        $data = $r->validate([
-            'status' => [
-                'sometimes','string',
-                Rule::in(['pending','paid','processing','shipped','delivered','refunded','cancelled']),
-            ],
-            'admin_note' => 'sometimes|nullable|string|max:2000',
-        ]);
-
-        if (array_key_exists('status', $data)) {
-            $order->status = $data['status'];
-        }
-        if (array_key_exists('admin_note', $data)) {
-            $order->admin_note = $data['admin_note'];
-        }
-        $order->save();
-
-        $order->load(['items.product','addresses']);
         return response()->json($order);
     }
 
     /**
-     * @param  Request  $r
-     * @param  string   $number
+     * @param RefundOrderRequest $r
+     * @param string             $number
      * @return JsonResponse
      */
-    public function refund(Request $r, string $number)
+    public function refund(RefundOrderRequest $r, string $number): JsonResponse
     {
-        $order = Order::where('number', $number)->firstOrFail();
-
-        $order->status = 'refunded';
-        $order->save();
+        $order = $this->service->refund($number);
 
         return response()->json([
             'message' => 'Order refunded',
-            'order' => $order->fresh(['items.product','addresses']),
+            'order'   => $order,
         ]);
+    }
+
+    /**
+     * @param  string  $number  The unique order number identifier.
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\Response
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     */
+    public function invoice(string $number)
+    {
+        $order = $this->service->show($number, auth()->user());
+
+        $pdf = Pdf::loadView('pdf.invoice', ['order' => $order]);
+
+        return $pdf->download("invoice-{$order->number}.pdf");
     }
 }

@@ -2,23 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ContactMessage;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
+use App\Http\Requests\Contact\StoreContactMessageRequest;
+use App\Services\ContactService;
+use Illuminate\Http\JsonResponse;
 
 class ContactController extends Controller
 {
-    /** @param Request $r @return \Illuminate\Http\JsonResponse */
-    public function store(Request $r)
+    /**
+     * @param ContactService $service
+     */
+    public function __construct(
+        private ContactService $service
+    ) {}
+
+    /**
+     * @param StoreContactMessageRequest $r
+     * @return JsonResponse
+     */
+    public function store(StoreContactMessageRequest $r): JsonResponse
     {
-        $data = $r->validate([
-            'name'    => 'required|string|max:120',
-            'email'   => 'required|email|max:255',
-            'message' => 'required|string|max:2000',
-        ]);
+        $msg = $this->service->store($r->validated());
 
-        $msg = ContactMessage::create($data);
-
-        return response()->json(['ok' => true, 'id' => $msg->id], 201);
+        return response()->json(
+            ['ok' => true, 'id' => $msg->id],
+            201
+        );
     }
 }
