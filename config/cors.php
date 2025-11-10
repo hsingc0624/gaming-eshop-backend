@@ -3,17 +3,11 @@
 return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
-    'allowed_methods' => ['*'],
-
-    'allowed_origins' => ['http://localhost:5173'],
-
-    'allowed_origins_patterns' => [],
-
-    'allowed_headers' => ['*'],
-
-    'exposed_headers' => [],
-
-    'max_age' => 0,
+    'allowed_origins' => [
+        'https://admin.danieleshopdemo.com',
+        'https://danieleshopdemo.com',
+        'https://www.danieleshopdemo.com',
+    ],
 
     'supports_credentials' => true,
 ];
